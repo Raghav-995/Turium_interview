@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { FileText, Globe, Plus, Loader2, UploadCloud, Sparkles, AlertCircle } from 'lucide-react';
 import type { IngestRequest } from '../types';
 
@@ -20,6 +20,8 @@ export const IngestionPanel: React.FC<IngestionPanelProps> = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLoadSample = () => {
     setLocalError(null);
@@ -43,11 +45,11 @@ export const IngestionPanel: React.FC<IngestionPanelProps> = ({
     try {
       if (activeTab === 'file') {
         if (!selectedFile) {
-          setLocalError('Please select a file to upload (.pdf, .txt, .md).');
+          setLocalError('Please choose a file to upload (.pdf, .txt, .md).');
           return;
         }
         const res = await onUploadFile(selectedFile);
-        setSuccessMessage(`File "${res.title}" indexed into ${res.chunk_count} chunks!`);
+        setSuccessMessage(`File indexed into ${res.chunk_count} chunks!`);
         setSelectedFile(null);
       } else if (activeTab === 'note') {
         if (!content.trim()) {
@@ -77,34 +79,35 @@ export const IngestionPanel: React.FC<IngestionPanelProps> = ({
         setTitle('');
       }
 
-      setTimeout(() => setSuccessMessage(null), 5000);
+      setTimeout(() => setSuccessMessage(null), 4500);
     } catch (err: any) {
       setLocalError(err.message || 'Operation failed');
     }
   };
 
   return (
-    <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+    <div className="card ingestion-panel-card">
+      {/* Fixed Card Header */}
+      <div className="ingestion-card-header">
         <h2 className="card-title" style={{ margin: 0 }}>
-          <Plus size={18} color="#3b82f6" />
+          <Plus size={17} color="#3b82f6" />
           Ingest Knowledge
         </h2>
-        {activeTab !== 'file' && (
-          <button
-            type="button"
-            className="btn-sample"
-            onClick={handleLoadSample}
-            title="Load demo sample for instant testing"
-          >
-            <Sparkles size={11} color="#60a5fa" />
-            <span>Load Demo</span>
-          </button>
-        )}
+        <button
+          type="button"
+          className="btn-sample"
+          onClick={handleLoadSample}
+          disabled={activeTab === 'file'}
+          style={{ visibility: activeTab === 'file' ? 'hidden' : 'visible' }}
+          title="Load demo sample for instant testing"
+        >
+          <Sparkles size={11} color="#60a5fa" />
+          <span>Load Demo</span>
+        </button>
       </div>
 
-      {/* Tabs */}
-      <div className="tab-container">
+      {/* Fixed Tabs */}
+      <div className="tab-container ingestion-tab-container">
         <button
           type="button"
           className={`tab-btn ${activeTab === 'note' ? 'active' : ''}`}
@@ -114,7 +117,7 @@ export const IngestionPanel: React.FC<IngestionPanelProps> = ({
             setSuccessMessage(null);
           }}
         >
-          <FileText size={14} />
+          <FileText size={13} />
           Plain Note
         </button>
         <button
@@ -126,7 +129,7 @@ export const IngestionPanel: React.FC<IngestionPanelProps> = ({
             setSuccessMessage(null);
           }}
         >
-          <Globe size={14} />
+          <Globe size={13} />
           Web URL
         </button>
         <button
@@ -138,39 +141,30 @@ export const IngestionPanel: React.FC<IngestionPanelProps> = ({
             setSuccessMessage(null);
           }}
         >
-          <UploadCloud size={14} />
+          <UploadCloud size={13} />
           Upload Doc
         </button>
       </div>
 
-      {localError && (
-        <div className="alert-error" style={{ marginBottom: '1rem', padding: '0.6rem 0.8rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <AlertCircle size={15} />
-            <span>{localError}</span>
-          </div>
-        </div>
-      )}
-
-      {successMessage && (
-        <div style={{ color: '#10b981', fontSize: '0.82rem', marginBottom: '1rem', fontWeight: 600 }}>
-          ✓ {successMessage}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit}>
-        {activeTab === 'file' ? (
-          <div className="form-group">
-            <label className="form-label">Upload PDF, Markdown, or Text File *</label>
-            <div className="file-drop-area">
-              <UploadCloud size={28} color="#3b82f6" style={{ marginBottom: '0.5rem' }} />
-              <p style={{ fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '0.25rem' }}>
+      {/* Locked Form Area to Guarantee Zero Vertical Movement */}
+      <form onSubmit={handleSubmit} className="ingestion-form">
+        <div className="ingestion-tab-content">
+          {activeTab === 'file' ? (
+            <div
+              className="file-drop-area-compact"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <UploadCloud size={24} color="#3b82f6" />
+              <p className="file-drop-title">
                 {selectedFile ? selectedFile.name : 'Choose a file (.pdf, .txt, .md)'}
               </p>
-              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                Text is extracted, chunked, and embedded automatically.
+              <span className="file-drop-subtitle">
+                {selectedFile
+                  ? `${(selectedFile.size / 1024).toFixed(1)} KB ready to index`
+                  : 'Automatic text extraction & vector embeddings'}
               </span>
               <input
+                ref={fileInputRef}
                 type="file"
                 accept=".pdf,.txt,.md"
                 onChange={(e) => {
@@ -179,63 +173,74 @@ export const IngestionPanel: React.FC<IngestionPanelProps> = ({
                     setLocalError(null);
                   }
                 }}
-                style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: '#94a3b8' }}
+                style={{ display: 'none' }}
               />
+              <button
+                type="button"
+                className="btn-browse-file"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
+              >
+                {selectedFile ? 'Change File' : 'Browse File'}
+              </button>
             </div>
-          </div>
-        ) : (
-          <>
-            <div className="form-group">
-              <label className="form-label">Title (Optional)</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder={activeTab === 'note' ? 'e.g., Python Architecture' : 'Auto-extracted from webpage title'}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </div>
-
-            {activeTab === 'note' ? (
-              <div className="form-group">
-                <label className="form-label">Note Content *</label>
-                <textarea
-                  className="form-textarea"
-                  placeholder="Paste or write thoughts, meeting notes, documentation snippets..."
-                  required
-                  rows={4}
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                />
-              </div>
-            ) : (
-              <div className="form-group">
-                <label className="form-label">Web URL *</label>
+          ) : (
+            <div className="tab-inputs-wrapper">
+              <div className="form-group-compact">
+                <label className="form-label-compact">Title (Optional)</label>
                 <input
                   type="text"
-                  className="form-input"
-                  placeholder="https://en.wikipedia.org/wiki/Artificial_intelligence"
-                  required
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
+                  className="form-input form-input-compact"
+                  placeholder={activeTab === 'note' ? 'e.g., Python Architecture Notes' : 'Auto-extracted from webpage'}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
                 />
-                <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.25rem', display: 'block' }}>
-                  Tip: Provide public URLs. Sites requiring login (like Google Accounts) will only return their sign-in page.
-                </span>
               </div>
-            )}
-          </>
-        )}
 
-        <button type="submit" className="btn btn-primary" disabled={isLoading}>
+              {activeTab === 'note' ? (
+                <div className="form-group-compact">
+                  <label className="form-label-compact">Note Content *</label>
+                  <textarea
+                    className="form-textarea form-textarea-compact"
+                    placeholder="Paste or write thoughts, meeting notes, documentation snippets..."
+                    required
+                    rows={3}
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                  />
+                </div>
+              ) : (
+                <div className="form-group-compact">
+                  <label className="form-label-compact">Web URL *</label>
+                  <input
+                    type="text"
+                    className="form-input form-input-compact"
+                    placeholder="https://en.wikipedia.org/wiki/Artificial_intelligence"
+                    required
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                  />
+                  <span className="url-tip-compact">
+                    Tip: Public URLs only (login-gated sites return auth pages).
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Submit Button */}
+        <button type="submit" className="btn btn-primary btn-submit-ingest" disabled={isLoading}>
           {isLoading ? (
             <>
-              <Loader2 size={16} className="animate-spin" />
+              <Loader2 size={15} className="animate-spin" />
               Processing & Chunking...
             </>
           ) : (
             <>
-              <Plus size={16} />
+              <Plus size={15} />
               {activeTab === 'note'
                 ? 'Save Note'
                 : activeTab === 'url'
@@ -244,6 +249,21 @@ export const IngestionPanel: React.FC<IngestionPanelProps> = ({
             </>
           )}
         </button>
+
+        {/* Reserved Status / Feedback Slot (Guaranteed Zero Layout Shift) */}
+        <div className="ingestion-status-slot">
+          {localError && (
+            <div className="ingestion-status-msg error">
+              <AlertCircle size={12} />
+              <span>{localError}</span>
+            </div>
+          )}
+          {successMessage && (
+            <div className="ingestion-status-msg success">
+              <span>✓ {successMessage}</span>
+            </div>
+          )}
+        </div>
       </form>
     </div>
   );
