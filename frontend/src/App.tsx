@@ -5,7 +5,7 @@ import { Header } from './components/Header';
 import { IngestionPanel } from './components/IngestionPanel';
 import { SavedItemsList } from './components/SavedItemsList';
 import { AskQuestion } from './components/AskQuestion';
-import { AnswerCard } from './components/AnswerCard';
+import { ChatConversation, type ChatMessage } from './components/ChatConversation';
 import { CitedSourcesPanel } from './components/CitedSourcesPanel';
 import { ArchitectureModal } from './components/ArchitectureModal';
 import { ChunkInspectorModal } from './components/ChunkInspectorModal';
@@ -20,6 +20,7 @@ export const App: React.FC = () => {
     error,
     queryResult,
     setError,
+    setQueryResult,
     ingest,
     uploadFile,
     query,
@@ -30,9 +31,42 @@ export const App: React.FC = () => {
   const [isArchModalOpen, setIsArchModalOpen] = useState(false);
   const [inspectingItem, setInspectingItem] = useState<SavedItem | null>(null);
   const [highlightedChunkId, setHighlightedChunkId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   const activeProvider = queryResult?.llm_provider || 'Ready';
   const hasCitations = queryResult && queryResult.citations.length > 0;
+
+  const handleAsk = async (question: string, topK?: number, threshold?: number) => {
+    const msgId = Date.now().toString();
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    setMessages((prev) => [
+      ...prev,
+      { id: msgId, question, isLoading: true, timestamp: timeStr },
+    ]);
+
+    try {
+      const res = await query(question, topK, threshold);
+      if (res) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === msgId ? { ...m, result: res, isLoading: false } : m))
+        );
+      }
+    } catch (err: any) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === msgId
+            ? { ...m, isLoading: false, error: err.message || 'Query failed' }
+            : m
+        )
+      );
+    }
+  };
+
+  const handleClearChat = () => {
+    setMessages([]);
+    setQueryResult(null);
+  };
 
   const handleCitationClick = (chunkId: string) => {
     setHighlightedChunkId(chunkId);
@@ -90,19 +124,20 @@ export const App: React.FC = () => {
           />
         </section>
 
-        {/* Center Column: Q&A Interface & Formatted Answer */}
+        {/* Center Column: Q&A Chat Stream (Up Side) & Fixed Bottom Input (ChatGPT/Gemini Style) */}
         <section className="grid-col-center">
+          <ChatConversation
+            messages={messages}
+            hasItems={items.length > 0}
+            onSelectPrompt={(prompt) => handleAsk(prompt)}
+            onCitationClick={handleCitationClick}
+            onClearHistory={handleClearChat}
+          />
           <AskQuestion
-            onAsk={query}
+            onAsk={handleAsk}
             isLoading={querying}
             hasItems={items.length > 0}
           />
-          {queryResult && (
-            <AnswerCard
-              result={queryResult}
-              onCitationClick={handleCitationClick}
-            />
-          )}
         </section>
 
         {/* Right Column: Dedicated Cited Sources Panel */}

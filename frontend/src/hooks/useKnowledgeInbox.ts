@@ -141,8 +141,10 @@ export function useKnowledgeInbox() {
 
       const result: QueryResponse = await res.json();
       setQueryResult(result);
+      return result;
     } catch (err: any) {
       setError(err.message || 'Query failed');
+      throw err;
     } finally {
       setQuerying(false);
     }

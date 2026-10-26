@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Loader2, Sliders, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { ArrowUp, Loader2, Sliders, Sparkles, X, RotateCcw } from 'lucide-react';
 
 interface AskQuestionProps {
   onAsk: (question: string, topK?: number, threshold?: number) => void;
@@ -13,57 +13,77 @@ export const AskQuestion: React.FC<AskQuestionProps> = ({ onAsk, isLoading, hasI
   const [topK, setTopK] = useState(4);
   const [threshold, setThreshold] = useState(0.2);
 
-  const suggestedQueries = [
-    'What is FastAPI and what are its features?',
+  const isTuned = topK !== 4 || threshold !== 0.2;
+
+  const quickChips = [
+    'FastAPI features',
     'Who is Raghav?',
-    'Explain the fundamentals of machine learning.',
-    'What instructions does the Google login page provide?',
+    'Fundamentals of ML',
+    'Google login page info',
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!queryText.trim() || isLoading) return;
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!queryText.trim() || !hasItems || isLoading) return;
     onAsk(queryText.trim(), topK, threshold);
+    setQueryText('');
   };
 
-  const handleSelectSuggestion = (suggestion: string) => {
-    setQueryText(suggestion);
-    if (!isLoading) {
-      onAsk(suggestion, topK, threshold);
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
     }
   };
 
+  const handleSelectChip = (chip: string) => {
+    if (!hasItems || isLoading) return;
+    onAsk(chip, topK, threshold);
+  };
+
+  const handleResetTuning = () => {
+    setTopK(4);
+    setThreshold(0.2);
+  };
+
   return (
-    <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-        <h2 className="card-title" style={{ margin: 0 }}>
-          <Search size={18} color="#10b981" />
-          Ask Questions Over Saved Content
-        </h2>
-        <button
-          type="button"
-          onClick={() => setShowSettings(!showSettings)}
-          className="btn-outline-mini"
-          title="Adjust RAG hyperparameters (Top-K, threshold)"
-        >
-          <Sliders size={12} />
-          <span>RAG Tuning</span>
-          {showSettings ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-        </button>
-      </div>
-
-      <p style={{ fontSize: '0.84rem', color: '#94a3b8', marginBottom: '1rem' }}>
-        Semantic vector search retrieves the top relevant chunks across your inbox, then an LLM synthesizes a grounded answer with verifiable source citations.
-      </p>
-
-      {/* Advanced Tuning Settings Drawer */}
+    <div className="chat-bottom-bar">
+      {/* Expandable RAG Tuning Drawer */}
       {showSettings && (
-        <div className="tuning-panel">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '0.25rem' }}>
-                <span style={{ color: '#cbd5e1' }}>Top-K Retrieved Chunks</span>
-                <strong style={{ color: '#60a5fa' }}>{topK} chunks</strong>
+        <div className="bottom-tuning-drawer">
+          <div className="tuning-drawer-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Sliders size={13} color="#60a5fa" />
+              <strong style={{ fontSize: '0.82rem', color: '#f1f5f9' }}>RAG Retrieval Tuning</strong>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {isTuned && (
+                <button
+                  type="button"
+                  className="btn-tuning-reset"
+                  onClick={handleResetTuning}
+                  title="Reset to default settings (k=4, θ=20%)"
+                >
+                  <RotateCcw size={11} />
+                  <span>Reset</span>
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn-tuning-close"
+                onClick={() => setShowSettings(false)}
+                title="Close tuning panel"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          </div>
+
+          <div className="tuning-sliders-grid">
+            <div className="tuning-slider-item">
+              <div className="tuning-slider-labels">
+                <span className="slider-name">Top-K Chunks</span>
+                <strong className="slider-val" style={{ color: '#60a5fa' }}>{topK} chunks</strong>
               </div>
               <input
                 type="range"
@@ -71,13 +91,15 @@ export const AskQuestion: React.FC<AskQuestionProps> = ({ onAsk, isLoading, hasI
                 max={8}
                 value={topK}
                 onChange={(e) => setTopK(Number(e.target.value))}
-                style={{ width: '100%', accentColor: '#3b82f6' }}
+                className="range-input"
               />
+              <span className="slider-desc">Number of top semantic chunks fed into the LLM context.</span>
             </div>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '0.25rem' }}>
-                <span style={{ color: '#cbd5e1' }}>Min Similarity Threshold</span>
-                <strong style={{ color: '#10b981' }}>{Math.round(threshold * 100)}%</strong>
+
+            <div className="tuning-slider-item">
+              <div className="tuning-slider-labels">
+                <span className="slider-name">Similarity Threshold</span>
+                <strong className="slider-val" style={{ color: '#10b981' }}>{Math.round(threshold * 100)}%</strong>
               </div>
               <input
                 type="range"
@@ -86,61 +108,96 @@ export const AskQuestion: React.FC<AskQuestionProps> = ({ onAsk, isLoading, hasI
                 step={0.05}
                 value={threshold}
                 onChange={(e) => setThreshold(Number(e.target.value))}
-                style={{ width: '100%', accentColor: '#10b981' }}
+                className="range-input"
               />
+              <span className="slider-desc">Minimum cosine similarity score required for chunk inclusion.</span>
             </div>
           </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="query-box">
-        <input
-          type="text"
-          className="query-input"
-          placeholder={
-            hasItems
-              ? 'Ask anything across your saved notes and URLs...'
-              : 'Add some notes or URLs first to query them...'
-          }
-          value={queryText}
-          onChange={(e) => setQueryText(e.target.value)}
-          disabled={!hasItems || isLoading}
-        />
-        <button
-          type="submit"
-          className="btn btn-primary btn-query"
-          disabled={!queryText.trim() || !hasItems || isLoading}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              Searching...
-            </>
-          ) : (
-            'Ask RAG'
-          )}
-        </button>
-      </form>
-
-      {/* Suggested Query Chips */}
+      {/* Quick Chips Row (Floating right above the prompt bar) */}
       {hasItems && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-            <Sparkles size={11} color="#60a5fa" /> Try asking:
+        <div className="quick-chips-bar">
+          <span className="quick-chips-label">
+            <Sparkles size={11} color="#60a5fa" />
+            Quick:
           </span>
-          {suggestedQueries.map((prompt) => (
+          {quickChips.map((chip) => (
             <button
-              key={prompt}
+              key={chip}
               type="button"
-              className="suggestion-chip"
-              onClick={() => handleSelectSuggestion(prompt)}
+              className="quick-chip-pill"
+              onClick={() => handleSelectChip(chip)}
               disabled={isLoading}
             >
-              {prompt}
+              {chip}
             </button>
           ))}
         </div>
       )}
+
+      {/* ChatGPT / Gemini Style Prompt Input Bar */}
+      <form onSubmit={handleSubmit} className="chat-prompt-form">
+        <div className={`chat-prompt-box ${!hasItems ? 'disabled' : ''}`}>
+          {/* Tuning Drawer Trigger Button */}
+          <button
+            type="button"
+            className={`btn-tuning-toggle ${showSettings ? 'active' : ''} ${isTuned ? 'has-override' : ''}`}
+            onClick={() => setShowSettings(!showSettings)}
+            title={`RAG Hyperparameters: Top-K=${topK}, Min-Threshold=${Math.round(threshold * 100)}%`}
+          >
+            <Sliders size={15} />
+            {isTuned && <span className="tuning-override-dot" />}
+          </button>
+
+          {/* Text Input */}
+          <input
+            type="text"
+            className="chat-prompt-input"
+            placeholder={
+              hasItems
+                ? 'Ask anything across your saved notes and URLs... (Press Enter)'
+                : 'Add notes or URLs first to query your knowledge inbox...'
+            }
+            value={queryText}
+            onChange={(e) => setQueryText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={!hasItems || isLoading}
+          />
+
+          {/* Clear text button */}
+          {queryText && (
+            <button
+              type="button"
+              className="btn-clear-input"
+              onClick={() => setQueryText('')}
+              title="Clear input"
+            >
+              <X size={14} />
+            </button>
+          )}
+
+          {/* Circular Send Button (ChatGPT/Gemini style) */}
+          <button
+            type="submit"
+            className="btn-send-prompt"
+            disabled={!queryText.trim() || !hasItems || isLoading}
+            title={isLoading ? 'Searching...' : 'Send message (Enter)'}
+          >
+            {isLoading ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <ArrowUp size={16} />
+            )}
+          </button>
+        </div>
+
+        {/* Muted Sub-caption Disclaimer */}
+        <div className="prompt-disclaimer">
+          <span>Grounded with <strong>Gemini 3.5 Flash</strong> & <strong>In-Process Vector Store</strong> • Citations link directly to source chunks</span>
+        </div>
+      </form>
     </div>
   );
 };
