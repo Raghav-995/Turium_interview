@@ -69,7 +69,7 @@ body {
 
 /* Layout */
 .app-container {
-  max-width: 1280px;
+  max-width: 1560px;
   margin: 0 auto;
   padding: 1.5rem 1.5rem 4rem;
 }
@@ -159,18 +159,33 @@ body {
   box-shadow: 0 0 12px var(--primary-glow);
 }
 
-/* Grid Layout */
+/* Grid Layout: Responsive 2-column & 3-column system */
 .main-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
 @media (min-width: 992px) {
   .main-grid {
-    grid-template-columns: 440px 1fr;
+    grid-template-columns: 380px 1fr;
+  }
+
+  .main-grid.has-citations {
+    grid-template-columns: 360px 1fr 340px;
   }
 }
+
+@media (min-width: 1400px) {
+  .main-grid {
+    grid-template-columns: 420px 1fr;
+  }
+
+  .main-grid.has-citations {
+    grid-template-columns: 380px 1fr 370px;
+  }
+}
+
 
 /* Card Styles */
 .card {
@@ -591,9 +606,11 @@ body {
   white-space: pre-line;
 }
 
-/* Citation Pill */
-.citation-pill {
-  display: inline-block;
+/* Citation Pill Button */
+button.citation-pill, .citation-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: rgba(59, 130, 246, 0.2);
   color: #93c5fd;
   border: 1px solid rgba(59, 130, 246, 0.4);
@@ -601,47 +618,65 @@ body {
   padding: 0.1rem 0.45rem;
   font-size: 0.75rem;
   font-weight: 700;
-  margin: 0 0.2rem;
+  margin: 0 0.25rem;
   cursor: pointer;
   transition: all 0.2s;
+  font-family: inherit;
+  vertical-align: middle;
 }
 
-.citation-pill:hover {
+button.citation-pill:hover, .citation-pill:hover {
   background: var(--primary);
   color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 0 8px var(--primary-glow);
 }
 
-/* Citations drawer / list */
-.citations-list {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.75rem;
-  margin-top: 1rem;
+/* Dedicated Citations Right-Hand Panel */
+.citations-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 120px);
+  position: sticky;
+  top: 1.5rem;
+  padding: 1.25rem;
 }
 
-@media (min-width: 768px) {
-  .citations-list {
-    grid-template-columns: 1fr 1fr;
-  }
+.citations-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.citations-scroll-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  overflow-y: auto;
+  padding-right: 0.35rem;
 }
 
 .citation-card {
-  background: var(--bg-primary);
+  background: var(--bg-surface-elevated);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 0.85rem;
+  padding: 0.95rem;
   font-size: 0.82rem;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  transition: all 0.3s ease;
+  gap: 0.45rem;
+  transition: all 0.25s ease;
 }
 
 .citation-card.highlighted {
   border-color: #3b82f6;
   box-shadow: 0 0 16px rgba(59, 130, 246, 0.5);
-  background: #111e38;
+  background: #101c38;
 }
+
 
 .citation-top {
   display: flex;

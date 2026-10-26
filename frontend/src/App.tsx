@@ -6,6 +6,7 @@ import { IngestionPanel } from './components/IngestionPanel';
 import { SavedItemsList } from './components/SavedItemsList';
 import { AskQuestion } from './components/AskQuestion';
 import { AnswerCard } from './components/AnswerCard';
+import { CitedSourcesPanel } from './components/CitedSourcesPanel';
 import { ArchitectureModal } from './components/ArchitectureModal';
 import { ChunkInspectorModal } from './components/ChunkInspectorModal';
 import type { SavedItem } from './types';
@@ -28,8 +29,18 @@ export const App: React.FC = () => {
 
   const [isArchModalOpen, setIsArchModalOpen] = useState(false);
   const [inspectingItem, setInspectingItem] = useState<SavedItem | null>(null);
+  const [highlightedChunkId, setHighlightedChunkId] = useState<string | null>(null);
 
   const activeProvider = queryResult?.llm_provider || 'Ready';
+  const hasCitations = queryResult && queryResult.citations.length > 0;
+
+  const handleCitationClick = (chunkId: string) => {
+    setHighlightedChunkId(chunkId);
+    const element = document.getElementById(`citation-card-${chunkId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  };
 
   return (
     <div className="app-container">
@@ -62,9 +73,10 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      <div className="main-grid">
+      {/* Responsive Grid: Expands to 3 columns when citations exist on wide screens */}
+      <div className={`main-grid ${hasCitations ? 'has-citations' : ''}`}>
         {/* Left Column: Ingestion & Saved Items Feed */}
-        <section>
+        <section className="grid-col-left">
           <IngestionPanel
             onIngest={ingest}
             onUploadFile={uploadFile}
@@ -78,15 +90,30 @@ export const App: React.FC = () => {
           />
         </section>
 
-        {/* Right Column: Q&A Interface & Citations */}
-        <section>
+        {/* Center Column: Q&A Interface & Formatted Answer */}
+        <section className="grid-col-center">
           <AskQuestion
             onAsk={query}
             isLoading={querying}
             hasItems={items.length > 0}
           />
-          {queryResult && <AnswerCard result={queryResult} />}
+          {queryResult && (
+            <AnswerCard
+              result={queryResult}
+              onCitationClick={handleCitationClick}
+            />
+          )}
         </section>
+
+        {/* Right Column: Dedicated Cited Sources Panel */}
+        {hasCitations && (
+          <section className="grid-col-right">
+            <CitedSourcesPanel
+              citations={queryResult.citations}
+              highlightedChunkId={highlightedChunkId}
+            />
+          </section>
+        )}
       </div>
 
       {/* System Design & Architecture Modal */}
