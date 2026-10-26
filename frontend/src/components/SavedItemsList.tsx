@@ -41,7 +41,8 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({
   };
 
   return (
-    <div className="card" style={{ marginTop: '1.5rem' }}>
+    <div className="card saved-items-card">
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h2 className="card-title" style={{ margin: 0 }}>
           <Layers size={18} color="#8b5cf6" />

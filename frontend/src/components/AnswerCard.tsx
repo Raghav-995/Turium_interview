@@ -51,11 +51,14 @@ export const AnswerCard: React.FC<AnswerCardProps> = ({
         </div>
       </div>
 
-      <MarkdownAnswer
-        content={result.answer}
-        onCitationClick={onCitationClick}
-        citationMap={citationMap}
-      />
+      <div className="answer-scroll-area">
+        <MarkdownAnswer
+          content={result.answer}
+          onCitationClick={onCitationClick}
+          citationMap={citationMap}
+        />
+      </div>
     </div>
   );
+
 };
