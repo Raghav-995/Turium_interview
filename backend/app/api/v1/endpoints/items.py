@@ -1,8 +1,9 @@
+import json
 from typing import List
 from fastapi import APIRouter, HTTPException, status
 from backend.app.core.database import get_db_connection
 from backend.app.core.logging import logger
-from backend.app.models.domain import SavedItem
+from backend.app.models.domain import ChunkInfo, SavedItem
 from backend.app.services.vector_store import vector_store
 
 router = APIRouter(tags=["Items"])
@@ -16,7 +17,6 @@ router = APIRouter(tags=["Items"])
 async def list_items() -> List[SavedItem]:
     """
     Retrieves all saved items in the knowledge inbox, ordered by most recently added.
-    Includes metadata and chunk counts.
     """
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -51,6 +51,44 @@ async def list_items() -> List[SavedItem]:
         for row in rows
     ]
     return items
+
+
+@router.get(
+    "/items/{item_id}/chunks",
+    response_model=List[ChunkInfo],
+    summary="Inspect individual chunks generated for a specific item"
+)
+async def get_item_chunks(item_id: str) -> List[ChunkInfo]:
+    """
+    Returns all text chunks, their order, character lengths, and timestamps
+    for technical transparency in the UI chunk inspector.
+    """
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT id, chunk_index, content, created_at
+            FROM chunks
+            WHERE item_id = ?
+            ORDER BY chunk_index ASC;
+            """,
+            (item_id,)
+        )
+        rows = cursor.fetchall()
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="No chunks found for this item.")
+
+    return [
+        ChunkInfo(
+            id=row["id"],
+            chunk_index=row["chunk_index"],
+            content=row["content"],
+            char_count=len(row["content"]),
+            created_at=row["created_at"]
+        )
+        for row in rows
+    ]
 
 
 @router.delete(

@@ -1,16 +1,17 @@
 from datetime import datetime
+from pathlib import Path
 from typing import List, Literal, Optional
-from pydantic import BaseModel, Field, HttpUrl, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 
-SourceType = Literal["note", "url"]
+SourceType = Literal["note", "url", "file"]
 
 
 class IngestRequest(BaseModel):
-    """Payload for ingesting text notes or external web pages."""
+    """Payload for ingesting text notes, external web pages, or local files."""
     source_type: Optional[SourceType] = Field(
         default=None,
-        description="Type of content: 'note' or 'url'. If omitted, auto-detected from url/content."
+        description="Type of content: 'note', 'url', or 'file'."
     )
     content: Optional[str] = Field(
         default=None,
@@ -18,31 +19,46 @@ class IngestRequest(BaseModel):
     )
     url: Optional[str] = Field(
         default=None,
-        description="HTTP/HTTPS URL to fetch (required if source_type is 'url')."
+        description="Web URL (http/https) or local file path (file://)."
     )
     title: Optional[str] = Field(
         default=None,
-        description="Optional title. If omitted, will be extracted or generated."
+        description="Optional title. If omitted, will be auto-extracted."
     )
 
     @model_validator(mode="after")
     def validate_inputs(self) -> "IngestRequest":
-        # Auto-detect source_type if not explicitly set
-        if not self.source_type:
-            if self.url and (self.url.startswith("http://") or self.url.startswith("https://")):
+        # Handle URL / file paths
+        if self.url and self.url.strip():
+            cleaned_url = self.url.strip()
+            if cleaned_url.startswith("file://") or cleaned_url.startswith("/"):
+                self.source_type = "file"
+                self.url = cleaned_url.replace("file://", "")
+            elif cleaned_url.startswith("http://") or cleaned_url.startswith("https://"):
                 self.source_type = "url"
-            elif self.content:
+                self.url = cleaned_url
+            else:
+                # Auto-prefix https:// for user convenience
+                self.url = f"https://{cleaned_url}"
+                self.source_type = "url"
+
+        # Auto-detect if source_type still not explicitly set
+        if not self.source_type:
+            if self.content and self.content.strip():
                 self.source_type = "note"
             else:
-                raise ValueError("Must provide either 'content' for a note or a valid 'url'.")
+                raise ValueError("Please provide either note text, a web URL, or an uploaded document.")
 
         if self.source_type == "note":
             if not self.content or not self.content.strip():
-                raise ValueError("Content cannot be empty when ingesting a note.")
+                raise ValueError("Note content cannot be empty.")
         elif self.source_type == "url":
-            if not self.url or not (self.url.startswith("http://") or self.url.startswith("https://")):
-                raise ValueError("A valid http:// or https:// URL must be provided.")
-        
+            if not self.url:
+                raise ValueError("A valid web URL (e.g., https://example.com) must be provided.")
+        elif self.source_type == "file":
+            if not self.url or not Path(self.url).exists():
+                raise ValueError(f"Target file does not exist at path: {self.url}")
+
         return self
 
 
@@ -53,6 +69,15 @@ class IngestResponse(BaseModel):
     source_type: SourceType
     chunk_count: int
     url: Optional[str] = None
+    created_at: str
+
+
+class ChunkInfo(BaseModel):
+    """Individual chunk representation for inspector."""
+    id: str
+    chunk_index: int
+    content: str
+    char_count: int
     created_at: str
 
 
@@ -75,6 +100,12 @@ class QueryRequest(BaseModel):
         ge=1,
         le=10,
         description="Number of relevant chunks to retrieve."
+    )
+    similarity_threshold: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Optional minimum cosine similarity filter (0.0 to 1.0)."
     )
 
 

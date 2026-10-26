@@ -1,4 +1,4 @@
-export type SourceType = 'note' | 'url';
+export type SourceType = 'note' | 'url' | 'file';
 
 export interface SavedItem {
   id: string;
@@ -23,6 +23,14 @@ export interface IngestResponse {
   source_type: SourceType;
   chunk_count: number;
   url?: string | null;
+  created_at: string;
+}
+
+export interface ChunkInfo {
+  id: string;
+  chunk_index: number;
+  content: string;
+  char_count: number;
   created_at: string;
 }
 

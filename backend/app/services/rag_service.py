@@ -21,10 +21,17 @@ class RAGService:
 
         # 2. Vector search in SQLite
         top_k = request.top_k or settings.TOP_K_CHUNKS
+        threshold = (
+            request.similarity_threshold
+            if request.similarity_threshold is not None
+            else settings.SIMILARITY_THRESHOLD
+        )
         retrieved_chunks = vector_store.search_similar_chunks(
             query_vector=query_vector,
-            top_k=top_k
+            top_k=top_k,
+            threshold=threshold
         )
+
 
         # 3. Guardrail: If no chunks pass the similarity threshold or no docs exist
         if not retrieved_chunks:

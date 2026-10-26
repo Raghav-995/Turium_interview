@@ -25,7 +25,7 @@ def _init_tables(conn: sqlite3.Connection) -> None:
         """
         CREATE TABLE IF NOT EXISTS items (
             id TEXT PRIMARY KEY,
-            source_type TEXT NOT NULL CHECK(source_type IN ('note', 'url')),
+            source_type TEXT NOT NULL CHECK(source_type IN ('note', 'url', 'file')),
             title TEXT NOT NULL,
             raw_content TEXT NOT NULL,
             url TEXT,
@@ -33,6 +33,7 @@ def _init_tables(conn: sqlite3.Connection) -> None:
         );
         """
     )
+
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS chunks (
