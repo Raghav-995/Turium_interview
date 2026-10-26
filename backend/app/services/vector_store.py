@@ -93,11 +93,12 @@ class VectorStore:
         for row in rows:
             chunk_vec = np.array(json.loads(row["embedding"]), dtype=np.float32)
             c_norm = np.linalg.norm(chunk_vec)
-            if c_norm == 0:
+            if c_norm == 0 or len(chunk_vec) != len(q_vec):
                 continue
 
             # Cosine similarity = dot(A, B) / (||A|| * ||B||)
             similarity = float(np.dot(q_vec, chunk_vec) / (q_norm * c_norm))
+
 
             if similarity >= threshold:
                 scored_chunks.append({
