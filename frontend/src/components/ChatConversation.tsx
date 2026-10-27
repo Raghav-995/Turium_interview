@@ -1,5 +1,17 @@
 import React, { useEffect, useRef } from 'react';
-import { Sparkles, User, RotateCcw, ArrowRight, Lightbulb, Database, ShieldCheck, Compass, Loader2, AlertCircle } from 'lucide-react';
+import {
+  Sparkles,
+  User,
+  RotateCcw,
+  ArrowRight,
+  Lightbulb,
+  Database,
+  ShieldCheck,
+  Compass,
+  Loader2,
+  AlertCircle,
+  BookOpen,
+} from 'lucide-react';
 import { AnswerCard } from './AnswerCard';
 import type { QueryResponse } from '../types';
 
@@ -18,6 +30,9 @@ interface ChatConversationProps {
   onSelectPrompt: (prompt: string) => void;
   onCitationClick: (chunkId: string) => void;
   onClearHistory: () => void;
+  hasCitations?: boolean;
+  citationCount?: number;
+  onOpenCitations?: () => void;
 }
 
 export const ChatConversation: React.FC<ChatConversationProps> = ({
@@ -26,6 +41,9 @@ export const ChatConversation: React.FC<ChatConversationProps> = ({
   onSelectPrompt,
   onCitationClick,
   onClearHistory,
+  hasCitations = false,
+  citationCount = 0,
+  onOpenCitations,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -63,7 +81,7 @@ export const ChatConversation: React.FC<ChatConversationProps> = ({
       {messages.length === 0 ? (
         <div className="chat-welcome-container">
           <div className="welcome-avatar-orb">
-            <Sparkles size={28} color="#ffffff" />
+            <Sparkles size={24} color="#ffffff" />
           </div>
 
           <h2 className="welcome-title">AI Knowledge Assistant</h2>
@@ -74,22 +92,22 @@ export const ChatConversation: React.FC<ChatConversationProps> = ({
 
           <div className="welcome-feature-pills">
             <span className="feature-pill">
-              <Database size={12} color="#60a5fa" />
+              <Database size={11} color="#60a5fa" />
               In-Process Vector Store
             </span>
             <span className="feature-pill">
-              <ShieldCheck size={12} color="#10b981" />
+              <ShieldCheck size={11} color="#10b981" />
               Grounded Gemini 3.5 Flash
             </span>
             <span className="feature-pill">
-              <Compass size={12} color="#a78bfa" />
+              <Compass size={11} color="#a78bfa" />
               Clickable Source Citations
             </span>
           </div>
 
           {!hasItems ? (
             <div className="welcome-empty-inbox-alert">
-              <AlertCircle size={16} color="#fbbf24" />
+              <AlertCircle size={16} color="#fbbf24" style={{ flexShrink: 0 }} />
               <span>
                 Your knowledge inbox is currently empty. Add notes, paste URLs, or upload PDF files using the left panel to begin.
               </span>
@@ -123,21 +141,36 @@ export const ChatConversation: React.FC<ChatConversationProps> = ({
       ) : (
         <div className="chat-stream-container">
           <div className="chat-stream-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Sparkles size={16} color="#3b82f6" />
-              <strong style={{ fontSize: '0.9rem', color: '#f8fafc' }}>Grounded Conversation</strong>
-              <span className="badge-count">
-                {messages.length} {messages.length === 1 ? 'query' : 'queries'}
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Sparkles size={15} color="#3b82f6" />
+                <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>Grounded Chat</strong>
+                <span className="badge-count">
+                  {messages.length} {messages.length === 1 ? 'query' : 'queries'}
+                </span>
+              </div>
+
+              {hasCitations && onOpenCitations && (
+                <button
+                  type="button"
+                  className="btn-sources-pill"
+                  onClick={onOpenCitations}
+                  title="View citations for this answer"
+                >
+                  <BookOpen size={11} />
+                  <span>{citationCount} Sources</span>
+                </button>
+              )}
             </div>
+
             <button
               type="button"
               className="btn-clear-chat"
               onClick={onClearHistory}
               title="Reset conversation and clear chat stream"
             >
-              <RotateCcw size={12} />
-              <span>Clear Chat</span>
+              <RotateCcw size={11} />
+              <span>Clear</span>
             </button>
           </div>
 
@@ -149,7 +182,7 @@ export const ChatConversation: React.FC<ChatConversationProps> = ({
                   <div className="message-header-user">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                       <div className="user-avatar-badge">
-                        <User size={12} color="#ffffff" />
+                        <User size={11} color="#ffffff" />
                       </div>
                       <span className="message-sender-user">You</span>
                     </div>
@@ -164,15 +197,15 @@ export const ChatConversation: React.FC<ChatConversationProps> = ({
                     <div className="assistant-loading-card">
                       <div className="assistant-loading-header">
                         <div className="ai-avatar-badge pulsing">
-                          <Sparkles size={14} color="#ffffff" />
+                          <Sparkles size={13} color="#ffffff" />
                         </div>
-                        <span className="ai-label">AI Knowledge Inbox</span>
+                        <span className="ai-label">AI Knowledge Assistant</span>
                         <span className="ai-model-tag">Gemini 3.5 Flash</span>
                       </div>
                       <div className="assistant-loading-body">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                          <Loader2 size={16} className="animate-spin" color="#3b82f6" />
-                          <span style={{ fontSize: '0.88rem', color: '#cbd5e1' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <Loader2 size={15} className="animate-spin" color="#3b82f6" />
+                          <span style={{ fontSize: '0.84rem', color: '#cbd5e1' }}>
                             Searching vector space & synthesizing grounded answer...
                           </span>
                         </div>
@@ -183,7 +216,7 @@ export const ChatConversation: React.FC<ChatConversationProps> = ({
 
                   {msg.error && (
                     <div className="assistant-error-card">
-                      <AlertCircle size={16} color="#f43f5e" />
+                      <AlertCircle size={15} color="#f43f5e" style={{ flexShrink: 0 }} />
                       <span>{msg.error}</span>
                     </div>
                   )}

@@ -1,5 +1,17 @@
 import React, { useState } from 'react';
-import { Layers, FileText, Globe, ExternalLink, Trash2, Clock, Eye, Search, UploadCloud } from 'lucide-react';
+import {
+  Layers,
+  FileText,
+  Globe,
+  ExternalLink,
+  Trash2,
+  Clock,
+  Eye,
+  Search,
+  UploadCloud,
+  X,
+  PlusCircle,
+} from 'lucide-react';
 import type { SavedItem } from '../types';
 
 interface SavedItemsListProps {
@@ -7,6 +19,7 @@ interface SavedItemsListProps {
   isLoading: boolean;
   onDelete: (id: string) => void;
   onInspectChunks: (item: SavedItem) => void;
+  onIngestClick?: () => void;
 }
 
 export const SavedItemsList: React.FC<SavedItemsListProps> = ({
@@ -14,6 +27,7 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({
   isLoading,
   onDelete,
   onInspectChunks,
+  onIngestClick,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
@@ -42,29 +56,51 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({
 
   return (
     <div className="card saved-items-card">
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2 className="card-title" style={{ margin: 0 }}>
-          <Layers size={18} color="#8b5cf6" />
-          Saved Inbox Items ({items.length})
+      {/* Header */}
+      <div className="saved-items-header">
+        <h2 className="card-title" style={{ margin: 0, fontSize: '0.95rem' }}>
+          <Layers size={17} color="#8b5cf6" />
+          <span>Saved Items ({items.length})</span>
         </h2>
+
+        {onIngestClick && (
+          <button
+            type="button"
+            className="btn-primary-mini"
+            onClick={onIngestClick}
+            title="Ingest a new note, web URL, or document"
+          >
+            <PlusCircle size={13} />
+            <span>+ Ingest Knowledge</span>
+          </button>
+        )}
       </div>
 
       {/* Filter and Search Bar */}
       {items.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1rem' }}>
+        <div className="saved-items-search-wrap">
           <div className="search-box-mini">
             <Search size={13} color="#64748b" />
             <input
               type="text"
-              placeholder="Filter saved items..."
+              placeholder="Search in saved items..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input-mini"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="btn-clear-search"
+                title="Clear search"
+              >
+                <X size={12} />
+              </button>
+            )}
           </div>
 
-          <div style={{ display: 'flex', gap: '0.4rem' }}>
+          <div className="filter-chips-row">
             {['all', 'note', 'url', 'file'].map((type) => (
               <button
                 key={type}
@@ -79,20 +115,38 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({
         </div>
       )}
 
+      {/* Content */}
       {isLoading ? (
         <div className="empty-state">Loading your inbox...</div>
       ) : filteredItems.length === 0 ? (
         <div className="empty-state">
-          {items.length === 0
-            ? 'No items saved yet. Add a note, URL, or upload a document above!'
-            : 'No items match your filter.'}
+          {items.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', padding: '1.5rem 0.5rem' }}>
+              <span>No items saved in your knowledge inbox yet.</span>
+              {onIngestClick && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.82rem' }}
+                  onClick={onIngestClick}
+                >
+                  <PlusCircle size={15} />
+                  <span>+ Ingest First Note or URL</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <span>No items match your filter.</span>
+          )}
         </div>
       ) : (
         <div className="items-list">
           {filteredItems.map((item) => (
             <div key={item.id} className="item-card">
               <div className="item-header">
-                <span className="item-title">{item.title}</span>
+                <span className="item-title" title={item.title}>
+                  {item.title}
+                </span>
                 <span className={`source-badge ${item.source_type}`}>
                   {item.source_type === 'note' ? (
                     <>
@@ -113,11 +167,11 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({
               <p className="item-preview">{item.raw_content}</p>
 
               <div className="item-footer">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                     <Clock size={11} /> {formatDate(item.created_at)}
                   </span>
-                  
+
                   {/* Clickable Chunk Inspector Badge */}
                   <button
                     type="button"
@@ -126,7 +180,9 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({
                     title="Inspect chunks and embeddings for this document"
                   >
                     <Eye size={10} />
-                    <span>{item.chunk_count} {item.chunk_count === 1 ? 'chunk' : 'chunks'}</span>
+                    <span>
+                      {item.chunk_count} {item.chunk_count === 1 ? 'chunk' : 'chunks'}
+                    </span>
                   </button>
 
                   {item.url && item.source_type === 'url' && (
@@ -134,7 +190,7 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ color: '#60a5fa', display: 'flex', alignItems: 'center', gap: '0.2rem', textDecoration: 'none' }}
+                      className="item-link"
                     >
                       <ExternalLink size={10} /> link
                     </a>
@@ -144,16 +200,7 @@ export const SavedItemsList: React.FC<SavedItemsListProps> = ({
                 <button
                   type="button"
                   onClick={() => onDelete(item.id)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#64748b',
-                    cursor: 'pointer',
-                    padding: '0.2rem',
-                    transition: 'color 0.2s',
-                  }}
-                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = '#f43f5e')}
-                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = '#64748b')}
+                  className="btn-delete-item"
                   title="Delete item"
                 >
                   <Trash2 size={13} />

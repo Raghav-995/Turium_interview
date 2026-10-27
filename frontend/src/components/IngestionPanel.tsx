@@ -1,17 +1,34 @@
 import React, { useState, useRef } from 'react';
-import { FileText, Globe, Plus, Loader2, UploadCloud, Sparkles, AlertCircle } from 'lucide-react';
+import {
+  FileText,
+  Globe,
+  Plus,
+  Loader2,
+  UploadCloud,
+  Sparkles,
+  AlertCircle,
+  PlusCircle,
+  Layers,
+  ArrowRight,
+} from 'lucide-react';
 import type { IngestRequest } from '../types';
 
 interface IngestionPanelProps {
   onIngest: (payload: IngestRequest) => Promise<any>;
   onUploadFile: (file: File) => Promise<any>;
   isLoading: boolean;
+  onSuccess?: () => void;
+  onViewSavedItems?: () => void;
+  savedItemsCount?: number;
 }
 
 export const IngestionPanel: React.FC<IngestionPanelProps> = ({
   onIngest,
   onUploadFile,
   isLoading,
+  onSuccess,
+  onViewSavedItems,
+  savedItemsCount = 0,
 }) => {
   const [activeTab, setActiveTab] = useState<'note' | 'url' | 'file'>('note');
   const [title, setTitle] = useState('');
@@ -79,7 +96,14 @@ export const IngestionPanel: React.FC<IngestionPanelProps> = ({
         setTitle('');
       }
 
-      setTimeout(() => setSuccessMessage(null), 4500);
+      // Automatically replace Ingest Knowledge div with Saved Items list after 750ms
+      if (onSuccess) {
+        setTimeout(() => {
+          onSuccess();
+        }, 750);
+      } else {
+        setTimeout(() => setSuccessMessage(null), 5000);
+      }
     } catch (err: any) {
       setLocalError(err.message || 'Operation failed');
     }
@@ -87,26 +111,43 @@ export const IngestionPanel: React.FC<IngestionPanelProps> = ({
 
   return (
     <div className="card ingestion-panel-card">
-      {/* Fixed Card Header */}
+      {/* Card Header */}
       <div className="ingestion-card-header">
-        <h2 className="card-title" style={{ margin: 0 }}>
-          <Plus size={17} color="#3b82f6" />
-          Ingest Knowledge
-        </h2>
-        <button
-          type="button"
-          className="btn-sample"
-          onClick={handleLoadSample}
-          disabled={activeTab === 'file'}
-          style={{ visibility: activeTab === 'file' ? 'hidden' : 'visible' }}
-          title="Load demo sample for instant testing"
-        >
-          <Sparkles size={11} color="#60a5fa" />
-          <span>Load Demo</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+          <PlusCircle size={16} color="#3b82f6" />
+          <h2 className="card-title" style={{ margin: 0, fontSize: '0.95rem' }}>
+            Ingest Knowledge
+          </h2>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <button
+            type="button"
+            className="btn-sample"
+            onClick={handleLoadSample}
+            disabled={activeTab === 'file'}
+            style={{ visibility: activeTab === 'file' ? 'hidden' : 'visible' }}
+            title="Load demo sample for instant testing"
+          >
+            <Sparkles size={11} color="#60a5fa" />
+            <span>Load Demo</span>
+          </button>
+
+          {onViewSavedItems && (
+            <button
+              type="button"
+              className="btn-outline-mini"
+              onClick={onViewSavedItems}
+              title="View your saved items list"
+            >
+              <Layers size={11} color="#8b5cf6" />
+              <span>Saved Items ({savedItemsCount})</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Fixed Tabs */}
+      {/* Tabs */}
       <div className="tab-container ingestion-tab-container">
         <button
           type="button"
@@ -117,8 +158,8 @@ export const IngestionPanel: React.FC<IngestionPanelProps> = ({
             setSuccessMessage(null);
           }}
         >
-          <FileText size={13} />
-          Plain Note
+          <FileText size={12} />
+          <span>Plain Note</span>
         </button>
         <button
           type="button"
@@ -129,8 +170,8 @@ export const IngestionPanel: React.FC<IngestionPanelProps> = ({
             setSuccessMessage(null);
           }}
         >
-          <Globe size={13} />
-          Web URL
+          <Globe size={12} />
+          <span>Web URL</span>
         </button>
         <button
           type="button"
@@ -141,12 +182,12 @@ export const IngestionPanel: React.FC<IngestionPanelProps> = ({
             setSuccessMessage(null);
           }}
         >
-          <UploadCloud size={13} />
-          Upload Doc
+          <UploadCloud size={12} />
+          <span>Upload Doc</span>
         </button>
       </div>
 
-      {/* Locked Form Area to Guarantee Zero Vertical Movement */}
+      {/* Form Area */}
       <form onSubmit={handleSubmit} className="ingestion-form">
         <div className="ingestion-tab-content">
           {activeTab === 'file' ? (
@@ -193,7 +234,11 @@ export const IngestionPanel: React.FC<IngestionPanelProps> = ({
                 <input
                   type="text"
                   className="form-input form-input-compact"
-                  placeholder={activeTab === 'note' ? 'e.g., Python Architecture Notes' : 'Auto-extracted from webpage'}
+                  placeholder={
+                    activeTab === 'note'
+                      ? 'e.g., Python Architecture Notes'
+                      : 'Auto-extracted from webpage'
+                  }
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                 />
@@ -223,7 +268,7 @@ export const IngestionPanel: React.FC<IngestionPanelProps> = ({
                     onChange={(e) => setUrl(e.target.value)}
                   />
                   <span className="url-tip-compact">
-                    Tip: Public URLs only (login-gated sites return auth pages).
+                    Public URLs only (login-gated sites return auth pages).
                   </span>
                 </div>
               )}
@@ -232,25 +277,31 @@ export const IngestionPanel: React.FC<IngestionPanelProps> = ({
         </div>
 
         {/* Submit Button */}
-        <button type="submit" className="btn btn-primary btn-submit-ingest" disabled={isLoading}>
+        <button
+          type="submit"
+          className="btn btn-primary btn-submit-ingest"
+          disabled={isLoading}
+        >
           {isLoading ? (
             <>
-              <Loader2 size={15} className="animate-spin" />
-              Processing & Chunking...
+              <Loader2 size={14} className="animate-spin" />
+              <span>Processing & Chunking...</span>
             </>
           ) : (
             <>
-              <Plus size={15} />
-              {activeTab === 'note'
-                ? 'Save Note'
-                : activeTab === 'url'
-                ? 'Fetch & Index URL'
-                : 'Upload & Index File'}
+              <Plus size={14} />
+              <span>
+                {activeTab === 'note'
+                  ? 'Save Note'
+                  : activeTab === 'url'
+                  ? 'Fetch & Index URL'
+                  : 'Upload & Index File'}
+              </span>
             </>
           )}
         </button>
 
-        {/* Reserved Status / Feedback Slot (Guaranteed Zero Layout Shift) */}
+        {/* Reserved Status / Feedback Slot */}
         <div className="ingestion-status-slot">
           {localError && (
             <div className="ingestion-status-msg error">
@@ -261,6 +312,17 @@ export const IngestionPanel: React.FC<IngestionPanelProps> = ({
           {successMessage && (
             <div className="ingestion-status-msg success">
               <span>✓ {successMessage}</span>
+              {onViewSavedItems && (
+                <button
+                  type="button"
+                  className="btn-inline-link"
+                  onClick={onViewSavedItems}
+                  title="View item in saved items list"
+                >
+                  <span>Go to Items</span>
+                  <ArrowRight size={10} />
+                </button>
+              )}
             </div>
           )}
         </div>

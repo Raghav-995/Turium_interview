@@ -1,30 +1,45 @@
 import React from 'react';
-import { BookOpen, ExternalLink } from 'lucide-react';
+import { BookOpen, ExternalLink, X } from 'lucide-react';
 import type { Citation } from '../types';
-
 
 interface CitedSourcesPanelProps {
   citations: Citation[];
   highlightedChunkId: string | null;
+  onClose?: () => void;
 }
 
 export const CitedSourcesPanel: React.FC<CitedSourcesPanelProps> = ({
   citations,
   highlightedChunkId,
+  onClose,
 }) => {
   if (citations.length === 0) return null;
 
   return (
     <div className="card citations-panel">
       <div className="citations-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-          <BookOpen size={16} color="#8b5cf6" />
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f8fafc' }}>
-            Cited Source Snippets ({citations.length})
-          </h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <BookOpen size={16} color="#8b5cf6" />
+            <h3 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#f8fafc' }}>
+              Cited Source Snippets ({citations.length})
+            </h3>
+          </div>
+
+          {onClose && (
+            <button
+              type="button"
+              className="btn-close-citations"
+              onClick={onClose}
+              title="Close citations panel"
+            >
+              <X size={15} />
+            </button>
+          )}
         </div>
+
         <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-          Click pills in answer to jump
+          Click source pills in answers to highlight snippets
         </span>
       </div>
 
